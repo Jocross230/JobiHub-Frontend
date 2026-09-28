@@ -541,7 +541,7 @@ function AIJobCard({
                    }: {
   job: ExternalJob;
 }) {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [saved, setSaved] =
       useState(false);
@@ -632,6 +632,8 @@ function AIJobCard({
 
   const handleApply = () => {
     if (!hasUrl) return;
+
+    if (isLoading) return;
 
     if (!user) {
       navigate('/login', {
@@ -799,7 +801,7 @@ function AIJobCard({
           <button
               type="button"
               onClick={handleApply}
-              disabled={!hasUrl}
+              disabled={!hasUrl || isLoading}
               className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-[#1E3A8A] text-white rounded-lg hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Apply Externally
@@ -986,7 +988,7 @@ export default function FindJobs() {
   ======================================================= */
 
   return (
-       <PublicLayout>
+      <PublicLayout>
 
         <div className="p-6 lg:p-8 max-w-5xl mx-auto">
 
