@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import Layout from '../../components/Layout';
-import { paymentsApi } from '../../api/paymentsApi';
+import { FormEvent, useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import {
+    CheckCircle,
+    CreditCard,
+    ArrowLeft,
+    Clock,
+    CalendarDays,
+} from 'lucide-react';
+import { paymentsApi } from '../api/paymentsApi';
+import Layout from '../components/layout/Layout';
 
-type ProductKey = 'PremiumCV' | 'CoverLetterPack' | 'JobReady';
-
-type PaymentInfo = {
+type PaymentProduct = {
     name: string;
     amount: number;
     duration: string;
@@ -13,14 +18,15 @@ type PaymentInfo = {
     transferxoUrl: string;
 };
 
-const paymentDetails: Record<ProductKey, PaymentInfo> = {
+const paymentDetails: Record<string, PaymentProduct> = {
     PremiumCV: {
         name: 'Premium CV',
         amount: 2000,
         duration: '1 month',
         description:
-            'Your Premium CV access remains active for 1 month after your payment is approved.',
-        transferxoUrl: 'https://transferxo.com/pay/VWAxBSNKWf',
+            'Your Premium CV access is valid for 1 month after your payment is approved.',
+        transferxoUrl:
+            'https://transferxo.com/pay/VWAxBSNKWf',
     },
 
     CoverLetterPack: {
@@ -28,21 +34,23 @@ const paymentDetails: Record<ProductKey, PaymentInfo> = {
         amount: 1000,
         duration: '7 days',
         description:
-            'Your Cover Letter Pack remains active for 7 days after your payment is approved. During this period, you can generate and download your cover letters.',
-        transferxoUrl: 'https://transferxo.com/pay/aehMKIcVsi',
+            'Your AI Cover Letter Pack is valid for 7 days after your payment is approved. You can generate and download cover letters during this period.',
+        transferxoUrl:
+            'https://transferxo.com/pay/aehMKIcVsi',
     },
 
     JobReady: {
-        name: 'Job Ready',
+        name: 'CareerFlow Job Ready',
         amount: 2500,
         duration: '1 month',
         description:
-            'Your Job Ready access remains active for 1 month after your payment is approved. During this period, you can apply through JobiHub to eligible jobs.',
-        transferxoUrl: 'https://transferxo.com/pay/hOXdhTBLbr',
+            'Your Job Ready access is valid for 1 month after your payment is approved. You can apply to eligible jobs through JobiHub during this period.',
+        transferxoUrl:
+            'https://transferxo.com/pay/hOXdhTBLbr',
     },
 };
 
-function formatDate(dateString?: string | null) {
+function formatExpiryDate(dateString: string | null) {
     if (!dateString) return '';
 
     const date = new Date(dateString);
@@ -61,56 +69,41 @@ function formatDate(dateString?: string | null) {
 export default function PaymentVerification() {
     const [searchParams] = useSearchParams();
 
-    const productParam =
+    const product =
         searchParams.get('product') || 'PremiumCV';
 
-    const product: ProductKey =
-        productParam in paymentDetails
-            ? (productParam as ProductKey)
-            : 'PremiumCV';
-
-    const currentPayment = useMemo(
-        () => paymentDetails[product],
-        [product]
-    );
+    const currentPayment =
+        paymentDetails[product] || paymentDetails.PremiumCV;
 
     const [paymentReference, setPaymentReference] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
 
-    const [currentStatus, setCurrentStatus] = useState<
+    const [paymentStatus, setPaymentStatus] = useState<
         'loading' | 'active' | 'pending' | 'inactive'
     >('loading');
 
     const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
-    useEffect(() => {
-        loadPaymentStatus();
-    }, [product]);
+    // ============================================================
+    // CHECK CURRENT PAYMENT STATUS
+    // ============================================================
 
-    const loadPaymentStatus = async () => {
-        setCurrentStatus('loading');
-        setExpiresAt(null);
-
+    const checkPaymentStatus = async () => {
         try {
-            const result = await paymentsApi.status(product);
+            setPaymentStatus('loading');
+            setExpiresAt(null);
 
-            if (result.approved === true) {
-                setCurrentStatus('active');
-                setExpiresAt(result.expiresAt ?? null);
+            const status = await paymentsApi.status(product);
+
+            if (status.approved === true) {
+                setPaymentStatus('active');
+                setExpiresAt(status.expiresAt ?? null);
                 return;
             }
 
-            setCurrentStatus('inactive');
-        } catch (err) {
-            console.error('PAYMENT STATUS ERROR:', err);
-            setCurrentStatus('inactive');
-        }
-    };
-
-    const checkPendingPayment = async () => {
-        try {
+            // If there is no active approved payment, check payment history
             const payments = await paymentsApi.myPayments();
 
             const latestPayment = payments
@@ -125,55 +118,57 @@ export default function PaymentVerification() {
                         new Date(a.createdAt).getTime()
                 )[0];
 
-            if (latestPayment?.status?.toLowerCase() === 'pending') {
-                setCurrentStatus('pending');
+            if (
+                latestPayment &&
+                latestPayment.status.toLowerCase() === 'pending'
+            ) {
+                setPaymentStatus('pending');
+            } else {
+                setPaymentStatus('inactive');
             }
         } catch (err) {
-            console.error('PAYMENT HISTORY ERROR:', err);
+            console.error('PAYMENT STATUS ERROR:', err);
+            setPaymentStatus('inactive');
         }
     };
 
     useEffect(() => {
-        if (currentStatus === 'inactive') {
-            checkPendingPayment();
-        }
-    }, [currentStatus]);
+        checkPaymentStatus();
+    }, [product]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    // ============================================================
+    // SUBMIT PAYMENT
+    // ============================================================
+
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
-        setError('');
         setMessage('');
+        setError('');
 
-        const reference = paymentReference.trim();
-
-        if (!reference) {
-            setError('Please enter your TransferXO payment reference.');
+        if (!paymentReference.trim()) {
+            setError(
+                'Please enter your TransferXO payment reference.'
+            );
             return;
         }
 
-        setSubmitting(true);
-
         try {
-            const result = await paymentsApi.submit({
+            setSubmitting(true);
+
+            const response = await paymentsApi.submit({
                 product,
                 amount: currentPayment.amount,
-                paymentReference: reference,
+                paymentReference: paymentReference.trim(),
             });
 
-            setMessage(
-                result.message ||
-                'Payment submitted successfully for verification.'
-            );
-
+            setMessage(response.message);
             setPaymentReference('');
-            setCurrentStatus('pending');
+            setPaymentStatus('pending');
         } catch (err: any) {
-            console.error('PAYMENT SUBMISSION ERROR:', err);
-
             setError(
                 err?.message ||
-                'Unable to submit your payment. Please try again.'
+                'Unable to submit your payment for verification.'
             );
         } finally {
             setSubmitting(false);
@@ -182,159 +177,190 @@ export default function PaymentVerification() {
 
     return (
         <Layout>
-            <div className="max-w-3xl mx-auto px-4 py-10">
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    {/* Header */}
-                    <div className="px-6 py-7 border-b border-gray-200">
-                        <h1 className="text-2xl font-bold text-gray-900">
-                            Payment & Activation
-                        </h1>
+            <div className="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 py-12">
+                <div className="w-full max-w-lg">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
 
-                        <p className="mt-2 text-gray-600">
-                            Complete your payment and submit your payment
-                            reference for verification.
-                        </p>
-                    </div>
-
-                    <div className="p-6 space-y-6">
-                        {/* Product */}
-                        <div className="rounded-xl bg-gray-50 border border-gray-200 p-5">
-                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                                <div>
-                                    <h2 className="text-xl font-semibold text-gray-900">
-                                        {currentPayment.name}
-                                    </h2>
-
-                                    <p className="mt-1 text-gray-600">
-                                        {currentPayment.description}
-                                    </p>
-                                </div>
-
-                                <div className="sm:text-right">
-                                    <div className="text-2xl font-bold text-gray-900">
-                                        ₦
-                                        {currentPayment.amount.toLocaleString()}
-                                    </div>
-
-                                    <div className="text-sm text-gray-500">
-                                        {currentPayment.duration} access
-                                    </div>
-                                </div>
+                        {/* ICON */}
+                        <div className="flex justify-center mb-6">
+                            <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center">
+                                <CreditCard className="w-7 h-7 text-[#1E3A8A]" />
                             </div>
                         </div>
 
-                        {/* Current status */}
-                        {currentStatus === 'active' && (
-                            <div className="rounded-xl border border-green-200 bg-green-50 p-5">
-                                <div className="flex items-start gap-3">
-                                    <div className="text-green-600 text-xl">
-                                        ✓
-                                    </div>
+                        {/* TITLE */}
+                        <h1 className="text-2xl font-bold text-slate-900 text-center">
+                            {currentPayment.name}
+                        </h1>
+
+                        <p className="mt-2 text-sm text-slate-500 text-center">
+                            Complete your payment and submit your
+                            TransferXO payment reference for verification.
+                        </p>
+
+                        {/* PRODUCT DETAILS */}
+                        <div className="mt-6 rounded-xl bg-slate-50 border border-slate-200 p-4">
+
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-500">
+                                    Product
+                                </span>
+
+                                <span className="text-sm font-semibold text-slate-900">
+                                    {currentPayment.name}
+                                </span>
+                            </div>
+
+                            <div className="flex justify-between items-center mt-3">
+                                <span className="text-sm text-slate-500">
+                                    Amount
+                                </span>
+
+                                <span className="text-lg font-bold text-[#1E3A8A]">
+                                    ₦
+                                    {currentPayment.amount.toLocaleString()}
+                                </span>
+                            </div>
+
+                            {/* DURATION */}
+                            <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200">
+                                <span className="flex items-center gap-2 text-sm text-slate-500">
+                                    <Clock className="w-4 h-4" />
+                                    Validity
+                                </span>
+
+                                <span className="text-sm font-semibold text-slate-900">
+                                    {currentPayment.duration}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* DESCRIPTION */}
+                        <div className="mt-4 rounded-xl bg-blue-50 border border-blue-100 p-4">
+                            <p className="text-sm text-blue-800">
+                                {currentPayment.description}
+                            </p>
+
+                            <p className="text-xs text-blue-700 mt-2">
+                                Your validity period starts when your payment
+                                is approved by JobiHub.
+                            </p>
+                        </div>
+
+                        {/* LOADING */}
+                        {paymentStatus === 'loading' && (
+                            <div className="mt-5 rounded-xl bg-slate-50 border border-slate-200 p-4 text-center">
+                                <p className="text-sm text-slate-600">
+                                    Checking your payment status...
+                                </p>
+                            </div>
+                        )}
+
+                        {/* ACTIVE */}
+                        {paymentStatus === 'active' && (
+                            <div className="mt-5 rounded-xl bg-green-50 border border-green-200 p-4">
+                                <div className="flex gap-3">
+                                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
 
                                     <div>
-                                        <h3 className="font-semibold text-green-800">
-                                            Your payment is approved
-                                        </h3>
+                                        <p className="text-sm font-semibold text-green-800">
+                                            Payment Approved
+                                        </p>
 
-                                        <p className="mt-1 text-sm text-green-700">
-                                            Your {currentPayment.name} access
-                                            is currently active.
+                                        <p className="text-sm text-green-700 mt-1">
+                                            Your {currentPayment.name} is
+                                            currently active.
                                         </p>
 
                                         {expiresAt && (
-                                            <p className="mt-2 text-sm font-medium text-green-800">
-                                                Expires:{' '}
-                                                {formatDate(expiresAt)}
-                                            </p>
+                                            <div className="flex items-center gap-2 mt-3 text-sm font-medium text-green-800">
+                                                <CalendarDays className="w-4 h-4" />
+
+                                                <span>
+                                                    Expires:{' '}
+                                                    {formatExpiryDate(
+                                                        expiresAt
+                                                    )}
+                                                </span>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {currentStatus === 'pending' && (
-                            <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-5">
-                                <div className="flex items-start gap-3">
-                                    <div className="text-yellow-600 text-xl">
-                                        ⏳
-                                    </div>
+                        {/* PENDING */}
+                        {paymentStatus === 'pending' && (
+                            <div className="mt-5 rounded-xl bg-yellow-50 border border-yellow-200 p-4">
+                                <div className="flex gap-3">
+                                    <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0" />
 
                                     <div>
-                                        <h3 className="font-semibold text-yellow-800">
-                                            Payment awaiting verification
-                                        </h3>
+                                        <p className="text-sm font-semibold text-yellow-800">
+                                            Payment Awaiting Verification
+                                        </p>
 
-                                        <p className="mt-1 text-sm text-yellow-700">
-                                            Your payment reference has been
-                                            submitted. Your access will begin
-                                            once the payment is approved.
+                                        <p className="text-sm text-yellow-700 mt-1">
+                                            Your payment has been submitted
+                                            and is waiting for verification.
+                                        </p>
+
+                                        <p className="text-xs text-yellow-700 mt-2">
+                                            Your access period will begin when
+                                            the payment is approved.
                                         </p>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Duration information */}
-                        <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
-                            <h3 className="font-semibold text-blue-900">
-                                How long does this payment last?
-                            </h3>
+                        {/* PAYMENT SUBMITTED MESSAGE */}
+                        {message && (
+                            <div className="mt-5 flex gap-3 rounded-xl bg-green-50 border border-green-200 p-4">
+                                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
 
-                            <div className="mt-3 space-y-2 text-sm text-blue-800">
-                                <p>
-                                    <strong>Access period:</strong>{' '}
-                                    {currentPayment.duration}
-                                </p>
-
-                                <p>
-                                    Your access period starts when your payment
-                                    is <strong>approved</strong> by JobiHub.
-                                </p>
-
-                                {product === 'CoverLetterPack' && (
-                                    <p>
-                                        You can generate and download your AI
-                                        cover letters while your access is
-                                        active.
-                                    </p>
-                                )}
-
-                                {product === 'JobReady' && (
-                                    <p>
-                                        You can apply through JobiHub to
-                                        eligible jobs while your Job Ready
-                                        access is active.
-                                    </p>
-                                )}
-
-                                {product === 'PremiumCV' && (
-                                    <p>
-                                        Your Premium CV access remains active
-                                        for the full payment period after
-                                        approval.
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Payment instructions */}
-                        {currentStatus !== 'active' && (
-                            <>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-gray-900">
-                                        Step 1: Make your payment
-                                    </h3>
+                                    <p className="text-sm font-semibold text-green-800">
+                                        Payment submitted
+                                    </p>
 
-                                    <p className="mt-1 text-sm text-gray-600">
-                                        Use the TransferXO payment link below
-                                        to pay the exact amount.
+                                    <p className="text-sm text-green-700 mt-1">
+                                        {message}
+                                    </p>
+
+                                    <p className="text-xs text-green-700 mt-2">
+                                        Your payment will be reviewed shortly.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ERROR */}
+                        {error && (
+                            <div className="mt-5 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+                                {error}
+                            </div>
+                        )}
+
+                        {/* PAYMENT SECTION */}
+                        {paymentStatus !== 'active' && (
+                            <>
+                                {/* TRANSFERXO */}
+                                <div className="mt-6">
+                                    <p className="text-sm font-semibold text-slate-900 mb-2">
+                                        Step 1: Make your payment
+                                    </p>
+
+                                    <p className="text-sm text-slate-500 mb-4">
+                                        Pay the exact amount using the
+                                        TransferXO link below.
                                     </p>
 
                                     <a
                                         href={currentPayment.transferxoUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="mt-4 inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"
+                                        className="w-full flex items-center justify-center px-4 py-3 bg-[#1E3A8A] text-white rounded-lg text-sm font-semibold hover:bg-blue-900 transition"
                                     >
                                         Pay ₦
                                         {currentPayment.amount.toLocaleString()}{' '}
@@ -342,78 +368,54 @@ export default function PaymentVerification() {
                                     </a>
                                 </div>
 
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-900">
+                                {/* PAYMENT REFERENCE */}
+                                <form
+                                    onSubmit={handleSubmit}
+                                    className="mt-6"
+                                >
+                                    <p className="text-sm font-semibold text-slate-900 mb-2">
                                         Step 2: Submit your payment reference
-                                    </h3>
-
-                                    <p className="mt-1 text-sm text-gray-600">
-                                        After making the payment, enter the
-                                        payment reference provided by
-                                        TransferXO.
                                     </p>
 
-                                    <form
-                                        onSubmit={handleSubmit}
-                                        className="mt-4 space-y-4"
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                        TransferXO Payment Reference
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value={paymentReference}
+                                        onChange={(e) =>
+                                            setPaymentReference(
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Enter your payment reference"
+                                        disabled={submitting}
+                                        className="w-full px-4 py-3 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100"
+                                    />
+
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="w-full mt-4 px-4 py-3 bg-[#1E3A8A] text-white rounded-lg text-sm font-semibold hover:bg-blue-900 transition disabled:opacity-50"
                                     >
-                                        <div>
-                                            <label
-                                                htmlFor="paymentReference"
-                                                className="block text-sm font-medium text-gray-700 mb-2"
-                                            >
-                                                Payment Reference
-                                            </label>
-
-                                            <input
-                                                id="paymentReference"
-                                                type="text"
-                                                value={paymentReference}
-                                                onChange={(e) =>
-                                                    setPaymentReference(
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="Enter your TransferXO payment reference"
-                                                disabled={submitting}
-                                                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                                            />
-                                        </div>
-
-                                        {error && (
-                                            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                                                {error}
-                                            </div>
-                                        )}
-
-                                        {message && (
-                                            <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                                                {message}
-                                            </div>
-                                        )}
-
-                                        <button
-                                            type="submit"
-                                            disabled={submitting}
-                                            className="w-full rounded-lg bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                        >
-                                            {submitting
-                                                ? 'Submitting...'
-                                                : 'Submit Payment for Verification'}
-                                        </button>
-                                    </form>
-                                </div>
+                                        {submitting
+                                            ? 'Submitting...'
+                                            : 'Submit Payment for Verification'}
+                                    </button>
+                                </form>
                             </>
                         )}
 
-                        {/* Footer note */}
-                        <div className="pt-4 border-t border-gray-200">
-                            <p className="text-xs text-gray-500">
-                                Payments are manually reviewed. Your access
-                                period begins from the date your payment is
-                                approved, not from the date you submit the
-                                payment reference.
-                            </p>
+                        {/* BACK */}
+                        <div className="mt-6 text-center">
+                            <Link
+                                to="/my-cvs"
+                                className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-[#1E3A8A]"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                Back to My CVs
+                            </Link>
                         </div>
                     </div>
                 </div>
