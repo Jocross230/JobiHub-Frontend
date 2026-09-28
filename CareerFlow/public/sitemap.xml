@@ -1,8 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
     <url>
-        <loc>https://jobihub.fit/</loc>
+        <loc>https://www.jobihub.fit/</loc>
+    </url>
+
+    <url>
+        <loc>https://www.jobihub.fit/jobs</loc>
+    </url>
+
+   <!-- <url>
+        <loc>https://www.jobihub.fit/for-business</loc>
+    </url>-->
+
+    <url>
+        <loc>https://www.jobihub.fit/login</loc>
+    </url>
+
+    <url>
+        <loc>https://www.jobihub.fit/register</loc>
     </url>
 
 </urlset>

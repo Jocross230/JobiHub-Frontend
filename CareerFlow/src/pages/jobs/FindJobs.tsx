@@ -11,7 +11,7 @@ import {
   Building2,
   Clock,
 } from 'lucide-react';
-import AppLayout from '../../components/layout/AppLayout';
+import PublicLayout from '../../components/layout/PublicLayout';
 import { Badge, Card } from '../../components/ui';
 import type { Job, SavedJob } from '../../api/jobsApi';
 import { jobsApi } from '../../api/jobsApi';
@@ -979,7 +979,7 @@ export default function FindJobs() {
   ======================================================= */
 
   return (
-      <AppLayout>
+       <PublicLayout>
 
         <div className="p-6 lg:p-8 max-w-5xl mx-auto">
 
@@ -1557,6 +1557,6 @@ export default function FindJobs() {
 
         </div>
 
-      </AppLayout>
+      </PublicLayout>
   );
 }

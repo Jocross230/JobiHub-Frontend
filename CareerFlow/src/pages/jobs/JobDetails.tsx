@@ -11,7 +11,7 @@ import {
     FileText,
 } from 'lucide-react';
 
-import AppLayout from '../../components/layout/AppLayout';
+import PublicLayout from '../../components/layout/PublicLayout';
 import { Card, Spinner } from '../../components/ui';
 import { jobsApi } from '../../api/jobsApi';
 import { cvApi, type Cv } from '../../api/cvApi';
@@ -179,11 +179,11 @@ export default function JobDetails() {
 
     if (loading) {
         return (
-            <AppLayout>
+            <PublicLayout>
                 <div className="flex justify-center py-20">
                     <Spinner size="lg" />
                 </div>
-            </AppLayout>
+            </PublicLayout>
         );
     }
 
@@ -193,7 +193,7 @@ export default function JobDetails() {
 
     if (error) {
         return (
-            <AppLayout>
+            <PublicLayout>
                 <div className="p-6 lg:p-8 max-w-5xl mx-auto">
 
                     <button
@@ -210,19 +210,19 @@ export default function JobDetails() {
                     </div>
 
                 </div>
-            </AppLayout>
+            </PublicLayout>
         );
     }
 
     if (!job) {
         return (
-            <AppLayout>
+            <PublicLayout>
                 <div className="p-6 lg:p-8 max-w-5xl mx-auto">
                     <p className="text-sm text-slate-500">
                         Job not found.
                     </p>
                 </div>
-            </AppLayout>
+            </PublicLayout>
         );
     }
 
@@ -251,7 +251,7 @@ export default function JobDetails() {
     // ============================================================
 
     return (
-        <AppLayout>
+        <PublicLayout>
 
             <div className="p-6 lg:p-8 max-w-5xl mx-auto">
 
@@ -626,6 +626,6 @@ export default function JobDetails() {
 
             </div>
 
-        </AppLayout>
+        </PublicLayout>
     );
 }

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://jobihub.fit/sitemap.xml
+Sitemap: https://www.jobihub.fit/sitemap.xml

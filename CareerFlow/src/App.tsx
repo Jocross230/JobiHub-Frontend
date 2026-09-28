@@ -194,27 +194,19 @@ export default function App() {
               />
 
             {/* Job routes */}
-            <Route
-              path="/jobs"
-              element={
-                <ProtectedRoute>
-                  <FindJobs />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                  path="/jobs"
+                  element={<FindJobs />}
+              />
               <Route
                   path="/reset-password"
                   element={<ResetPassword />}
               />
 
-            <Route
-              path="/jobs/:id"
-              element={
-                <ProtectedRoute>
-                  <JobDetails />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                  path="/jobs/:id"
+                  element={<JobDetails />}
+              />
               <Route
                   path="/forgot-password"
                   element={<ForgotPassword />}
