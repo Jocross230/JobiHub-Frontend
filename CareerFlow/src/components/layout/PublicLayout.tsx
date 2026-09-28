@@ -1,6 +1,12 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { Briefcase, FileText, Building2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+    Briefcase,
+    Building2,
+    LayoutDashboard,
+    LogOut,
+} from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import careerflowLogo from '../../assets/careerflow-logo.png';
 
 export default function PublicLayout({
@@ -8,6 +14,14 @@ export default function PublicLayout({
                                      }: {
     children: ReactNode;
 }) {
+    const { user, isAuthenticated, isBusiness, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/');
+    };
+
     return (
         <div className="min-h-screen bg-slate-50">
 
@@ -53,19 +67,56 @@ export default function PublicLayout({
                         {/* Actions */}
                         <div className="flex items-center gap-2">
 
-                            <Link
-                                to="/login"
-                                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-                            >
-                                Sign In
-                            </Link>
+                            {isAuthenticated ? (
+                                <>
+                                    <Link
+                                        to={
+                                            isBusiness
+                                                ? '/business'
+                                                : '/dashboard'
+                                        }
+                                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 hover:text-blue-700 transition"
+                                    >
+                                        <LayoutDashboard className="w-4 h-4" />
 
-                            <Link
-                                to="/register"
-                                className="px-4 py-2 text-sm font-semibold bg-[#1E3A8A] text-white rounded-lg hover:bg-blue-900 transition"
-                            >
-                                Get Started
-                            </Link>
+                                        <span className="hidden sm:inline">
+                      {user?.fullName || 'Dashboard'}
+                    </span>
+
+                                        <span className="sm:hidden">
+                      Dashboard
+                    </span>
+                                    </Link>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+
+                                        <span className="hidden sm:inline">
+                      Sign Out
+                    </span>
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link
+                                        to="/login"
+                                        className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+                                    >
+                                        Sign In
+                                    </Link>
+
+                                    <Link
+                                        to="/register"
+                                        className="px-4 py-2 text-sm font-semibold bg-[#1E3A8A] text-white rounded-lg hover:bg-blue-900 transition"
+                                    >
+                                        Get Started
+                                    </Link>
+                                </>
+                            )}
 
                         </div>
 
@@ -112,19 +163,44 @@ export default function PublicLayout({
                                 Employers
                             </Link>
 
-                            <Link
-                                to="/login"
-                                className="text-sm text-slate-500 hover:text-blue-700"
-                            >
-                                Sign In
-                            </Link>
+                            {isAuthenticated ? (
+                                <>
+                                    <Link
+                                        to={
+                                            isBusiness
+                                                ? '/business'
+                                                : '/dashboard'
+                                        }
+                                        className="text-sm text-slate-500 hover:text-blue-700"
+                                    >
+                                        Dashboard
+                                    </Link>
 
-                            <Link
-                                to="/register"
-                                className="text-sm text-slate-500 hover:text-blue-700"
-                            >
-                                Register
-                            </Link>
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="text-sm text-slate-500 hover:text-red-600"
+                                    >
+                                        Sign Out
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link
+                                        to="/login"
+                                        className="text-sm text-slate-500 hover:text-blue-700"
+                                    >
+                                        Sign In
+                                    </Link>
+
+                                    <Link
+                                        to="/register"
+                                        className="text-sm text-slate-500 hover:text-blue-700"
+                                    >
+                                        Register
+                                    </Link>
+                                </>
+                            )}
 
                         </div>
 
