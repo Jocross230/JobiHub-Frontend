@@ -132,6 +132,10 @@ export default function CoverLetter() {
           setError(
               'The selected CV could not be found.'
           );
+        } else if (e.status === 503) {
+          setError(
+              'Our AI service is temporarily busy. Please try again in a few moments.'
+          );
         } else if (e.status === 500) {
           setError(
               'The cover letter could not be generated. Please try again.'
