@@ -54,13 +54,6 @@ export default function PublicLayout({
                                 Find Jobs
                             </Link>
 
-                            <Link
-                                to="/for-business"
-                                className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-700 transition"
-                            >
-                                <Building2 className="w-4 h-4" />
-                                For Employers
-                            </Link>
 
                         </nav>
 
@@ -154,13 +147,6 @@ export default function PublicLayout({
                                 className="text-sm text-slate-500 hover:text-blue-700"
                             >
                                 Jobs
-                            </Link>
-
-                            <Link
-                                to="/for-business"
-                                className="text-sm text-slate-500 hover:text-blue-700"
-                            >
-                                Employers
                             </Link>
 
                             {isAuthenticated ? (
