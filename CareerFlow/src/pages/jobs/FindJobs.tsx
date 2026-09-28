@@ -16,6 +16,7 @@ import { Badge, Card } from '../../components/ui';
 import type { Job } from '../../api/jobsApi';
 import { jobsApi } from '../../api/jobsApi';
 import { paymentsApi } from '../../api/paymentsApi';
+import { useAuth } from '../../context/AuthContext';
 
 const WORK_TYPES = [
   'All',
@@ -554,6 +555,8 @@ function AIJobCard({
                    }: {
   job: ExternalJob;
 }) {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [saved, setSaved] =
       useState(false);
 
@@ -650,6 +653,25 @@ function AIJobCard({
       return;
     }
 
+    /*
+     * User must be logged in before applying.
+     * The Find Jobs page itself remains public.
+     */
+    if (!isAuthenticated) {
+      navigate('/login', {
+        state: {
+          returnTo: '/jobs',
+          message: 'Please sign in to apply for this job.',
+        },
+      });
+
+      return;
+    }
+
+    /*
+     * Logged-in users are sent directly
+     * to the original external vacancy.
+     */
     window.open(
         job.externalUrl,
         '_blank',
