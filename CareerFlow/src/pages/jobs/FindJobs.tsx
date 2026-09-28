@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { aiJobsApi, ExternalJob } from '../../api/aiJobsApi';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   Search,
   MapPin,
@@ -540,6 +541,8 @@ function AIJobCard({
                    }: {
   job: ExternalJob;
 }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [saved, setSaved] =
       useState(false);
 
@@ -628,15 +631,19 @@ function AIJobCard({
   ------------------------------------------------------- */
 
   const handleApply = () => {
-    if (!hasUrl) {
+    if (!hasUrl) return;
+
+    if (!user) {
+      navigate('/login', {
+        state: {
+          returnTo: '/jobs',
+          message: 'Please sign in or register before applying for a job.',
+        },
+      });
       return;
     }
 
-    window.open(
-        job.externalUrl,
-        '_blank',
-        'noopener,noreferrer'
-    );
+    window.open(job.externalUrl, '_blank', 'noopener,noreferrer');
   };
 
   /* -------------------------------------------------------

@@ -32,8 +32,15 @@ export const aiJobsApi = {
             searchParams.set('location', params.location);
         }
 
+        /*
+         * PUBLIC ENDPOINT
+         *
+         * Anyone should be able to search jobs without
+         * logging in or registering.
+         */
         return await apiGet<AIJobSearchResponse>(
-            `/api/jobs/ai-search?${searchParams.toString()}`
+            `/api/jobs/ai-search?${searchParams.toString()}`,
+            false
         );
     },
 };

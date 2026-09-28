@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 import PublicLayout from '../../components/layout/PublicLayout';
+import { useAuth } from '../../context/AuthContext';
 import { Card, Spinner } from '../../components/ui';
 import { jobsApi } from '../../api/jobsApi';
 import { cvApi, type Cv } from '../../api/cvApi';
@@ -20,6 +21,7 @@ import { paymentsApi } from '../../api/paymentsApi';
 export default function JobDetails() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     const [job, setJob] = useState<any>(null);
 
@@ -338,9 +340,18 @@ export default function JobDetails() {
                             <button
                                 type="button"
                                 onClick={async () => {
+                                    if (!user) {
+                                        navigate('/login', {
+                                            state: {
+                                                returnTo: `/jobs/${id}`,
+                                                message: 'Please sign in or register before applying for this job.',
+                                            },
+                                        });
+                                        return;
+                                    }
+
                                     try {
-                                        const payment =
-                                            await paymentsApi.status('JobReady');
+                                        const payment = await paymentsApi.status('JobReady');
 
                                         if (payment.approved === true) {
                                             await openApplyPanel();
@@ -350,10 +361,7 @@ export default function JobDetails() {
                                         window.location.href =
                                             '/payment-verification?product=JobReady&amount=2500';
                                     } catch (error) {
-                                        console.error(
-                                            'JOB READY PAYMENT STATUS ERROR:',
-                                            error
-                                        );
+                                        console.error('JOB READY PAYMENT STATUS ERROR:', error);
 
                                         window.location.href =
                                             '/payment-verification?product=JobReady&amount=2500';
