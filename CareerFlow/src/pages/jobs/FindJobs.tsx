@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { aiJobsApi, ExternalJob } from '../../api/aiJobsApi';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import {
   Search,
   MapPin,
@@ -14,11 +13,17 @@ import {
 } from 'lucide-react';
 import PublicLayout from '../../components/layout/PublicLayout';
 import { Badge, Card } from '../../components/ui';
-import type { Job, SavedJob } from '../../api/jobsApi';
+import type { Job } from '../../api/jobsApi';
 import { jobsApi } from '../../api/jobsApi';
 import { paymentsApi } from '../../api/paymentsApi';
 
-const WORK_TYPES = ['All', 'Remote', 'Hybrid', 'On-site'];
+const WORK_TYPES = [
+  'All',
+  'Remote',
+  'Hybrid',
+  'On-site',
+];
+
 const EMP_TYPES = [
   'All',
   'Full-time',
@@ -123,7 +128,7 @@ function convertExternalJob(job: ExternalJob): Job {
 }
 
 /* =========================================================
-   CAREERFLOW JOB CARD
+   JOBIHUB JOB CARD
 ========================================================= */
 
 function JobCard({
@@ -168,7 +173,11 @@ function JobCard({
       }
 
       /*
-       * CareerFlow jobs are stored in the database.
+       * JobiHub jobs are stored in the database.
+       *
+       * If the visitor is not authenticated,
+       * this request may fail. That should not
+       * prevent the public jobs page from loading.
        */
       try {
         const savedJobs =
@@ -255,7 +264,7 @@ function JobCard({
       }
 
       /* =====================================================
-         CAREERFLOW JOB
+         JOBIHUB JOB
       ===================================================== */
 
       if (saved) {
@@ -292,7 +301,7 @@ function JobCard({
         setSavedJobId(null);
       } else {
         /*
-         * Save the CareerFlow job.
+         * Save the JobiHub job.
          */
         const result =
             await jobsApi.saveJob(job.id);
@@ -301,8 +310,6 @@ function JobCard({
 
         /*
          * Store the database saved-job ID.
-         * This lets us remove it later without
-         * searching again.
          */
         if (result?.id !== undefined) {
           setSavedJobId(
@@ -500,10 +507,17 @@ function JobCard({
                     onClick={async () => {
                       try {
                         const payment =
-                            await paymentsApi.status('JobReady');
+                            await paymentsApi.status(
+                                'JobReady'
+                            );
 
-                        if (payment.approved === true) {
-                          navigate(`/jobs/${job.id}`);
+                        if (
+                            payment.approved === true
+                        ) {
+                          navigate(
+                              `/jobs/${job.id}`
+                          );
+
                           return;
                         }
 
@@ -522,7 +536,6 @@ function JobCard({
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-[#1E3A8A] text-white rounded-lg hover:bg-blue-900 transition"
                 >
                   Apply on JobiHub
-
                 </button>
             )}
 
@@ -541,8 +554,6 @@ function AIJobCard({
                    }: {
   job: ExternalJob;
 }) {
-  const { user, isLoading } = useAuth();
-  const navigate = useNavigate();
   const [saved, setSaved] =
       useState(false);
 
@@ -628,24 +639,22 @@ function AIJobCard({
 
   /* -------------------------------------------------------
      Apply externally
+
+     IMPORTANT:
+     This is intentionally PUBLIC.
+     No login check is performed here.
   ------------------------------------------------------- */
 
   const handleApply = () => {
-    if (!hasUrl) return;
-
-    if (isLoading) return;
-
-    if (!user) {
-      navigate('/login', {
-        state: {
-          returnTo: '/jobs',
-          message: 'Please sign in or register before applying for a job.',
-        },
-      });
+    if (!hasUrl) {
       return;
     }
 
-    window.open(job.externalUrl, '_blank', 'noopener,noreferrer');
+    window.open(
+        job.externalUrl,
+        '_blank',
+        'noopener,noreferrer'
+    );
   };
 
   /* -------------------------------------------------------
@@ -801,7 +810,7 @@ function AIJobCard({
           <button
               type="button"
               onClick={handleApply}
-              disabled={!hasUrl || isLoading}
+              disabled={!hasUrl}
               className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-[#1E3A8A] text-white rounded-lg hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Apply Externally
@@ -821,7 +830,7 @@ function AIJobCard({
 export default function FindJobs() {
 
   /* -------------------------------------------------------
-     CareerFlow search
+     JobiHub search
   ------------------------------------------------------- */
 
   const [query, setQuery] =
@@ -932,7 +941,7 @@ export default function FindJobs() {
   };
 
   /* =======================================================
-     CAREERFLOW JOB SEARCH
+     JOBIHUB JOB SEARCH
   ======================================================= */
 
   useEffect(() => {
@@ -993,7 +1002,7 @@ export default function FindJobs() {
         <div className="p-6 lg:p-8 max-w-5xl mx-auto">
 
           {/* =================================================
-            HEADER
+           HEADER
         ================================================= */}
 
           <div className="mb-6">
@@ -1012,7 +1021,7 @@ export default function FindJobs() {
           </div>
 
           {/* =================================================
-            TABS
+           TABS
         ================================================= */}
 
           <div className="flex gap-2 border-b border-slate-200 mb-6">
@@ -1066,7 +1075,7 @@ export default function FindJobs() {
           </div>
 
           {/* =================================================
-            PUBLIC JOB SEARCH
+           PUBLIC JOB SEARCH
         ================================================= */}
 
           {activeTab === 'ai' && (
@@ -1311,7 +1320,7 @@ export default function FindJobs() {
           )}
 
           {/* =================================================
-            CAREERFLOW JOBS
+           JOBIHUB JOBS
         ================================================= */}
 
           {activeTab ===
@@ -1501,7 +1510,7 @@ export default function FindJobs() {
 
                     </div>
 
-                    {/* CareerFlow results */}
+                    {/* JobiHub results */}
 
                     <div className="space-y-3">
 
